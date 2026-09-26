@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+bot/.env
+bot/state.json
+.DS_Store
