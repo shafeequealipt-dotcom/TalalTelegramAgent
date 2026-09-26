@@ -12,18 +12,10 @@ a service page.
 - If the queue runs low (< 5 left), the bot auto-picks a fresh, timely topic instead.
 
 ## Queue (oldest first = next up)
-
-Location-based (one per area served — each tied to a REAL local angle, not the
-same content with a town name swapped; see clinic.json areasServed):
-
-- [Allergy] Traffic, dust and sinusitis near Kappalandimukku's main junctions
 - [Skin] Palluruthy's backwater life and skin health: fungal infections in a damp, waterside community
 - [Allergy] Living near Kochi port: Thoppumpady's air quality and respiratory health
 - [Migraine] Ernakulam's office commute and migraine: screen time, traffic stress and headache patterns
 - [General] Hard water across Kochi homes: what it does to hair and scalp health
-
-General queue (after location topics are done):
-
 - [Allergy] Adenoids and children's sleep-disordered breathing: what parents notice first
 - [Pediatric] Recurrent tonsillitis in children: when it's "just childhood" and when it isn't
 - [Migraine] Migraine triggers and patterns: keeping a diary that actually helps your doctor
@@ -35,6 +27,7 @@ General queue (after location topics are done):
 - [General] Thyroid and unexplained tiredness: symptoms people dismiss too often
 
 ## Done (most recent first)
+- 2026-09-26 [Allergy] Traffic, dust and sinusitis near Kappalandimukku's main junctions  -> 2026-09-26-sinusitis-treatment-in-kochi-managing-allergies-near-kappala.md
 
 - 2026-09-26 [Skin] Fort Kochi's Sea Air and Skin: Why Eczema Often Flares Near the Coast  -> 2026-09-26-sea-air-skin-eczema-fort-kochi.md
 - 2026-09-02 [Allergy] Why Allergic Rhinitis Gets Worse Every Monsoon in Kochi  -> 2026-09-02-monsoon-allergic-rhinitis-kochi.md
