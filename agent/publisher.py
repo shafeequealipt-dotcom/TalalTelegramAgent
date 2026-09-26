@@ -7,7 +7,7 @@ the DNHCare original this agent is patterned on: Astro's content collections
 do that work.
 
 A second, SEPARATE git target is this agent's OWN repo (config.AGENT_REPO_DIR) —
-used only by update_prompt() for the /setprompt command, so content_prompt.txt
+used only by update_prompt() for `agent.cli set-prompt`, so content_prompt.txt
 stays editable "on GitHub" without ever touching the site repo's history.
 """
 import os

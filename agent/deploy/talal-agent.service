@@ -1,19 +1,15 @@
 [Unit]
-Description=Talal Homeo Telegram blog agent
+Description=Talal Homeo daily blog agent (run once)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
-Type=simple
+Type=oneshot
 User=ubuntu
 WorkingDirectory=/opt/talal-agent/TalalTelegramAgent
 # Secrets come from the shell environment (see the project's global secrets
 # rule) — EnvironmentFile is only a fallback if you're not exporting them in
 # the service user's own shell profile.
-EnvironmentFile=-/opt/talal-agent/TalalTelegramAgent/bot/.env
-ExecStart=/opt/talal-agent/TalalTelegramAgent/.venv/bin/python -m bot.bot
-Restart=on-failure
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
+EnvironmentFile=-/opt/talal-agent/TalalTelegramAgent/agent/.env
+ExecStart=/opt/talal-agent/TalalTelegramAgent/.venv/bin/python -m agent.run_daily
+# journalctl -u talal-agent  — see what happened on any given run

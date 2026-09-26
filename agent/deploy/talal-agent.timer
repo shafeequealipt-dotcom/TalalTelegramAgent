@@ -1,0 +1,17 @@
+[Unit]
+Description=Run the Talal Homeo blog agent once a day, at a randomized time
+
+[Timer]
+# 00:30 UTC = 06:00 IST — the start of the posting window.
+OnCalendar=*-*-* 00:30:00 UTC
+# Adds a random delay of up to 3h (10800s) on top of OnCalendar, so the actual
+# run lands anywhere in 06:00-09:00 IST — a different minute every day, same
+# effect as the DNHCare original's in-process random-slot picker, without
+# needing a persistent process.
+RandomizedDelaySec=10800
+# If the server was off/asleep at the scheduled time, run once at the next boot
+# instead of silently skipping the day.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

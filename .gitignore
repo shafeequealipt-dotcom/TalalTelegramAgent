@@ -2,6 +2,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
-bot/.env
-bot/state.json
+agent/.env
+agent/state.json
 .DS_Store

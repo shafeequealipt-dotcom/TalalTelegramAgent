@@ -47,8 +47,8 @@ _SCHEMA = """{
 }"""
 
 # Fallback used only if content_prompt.txt is missing. The live, editable prompt
-# lives in that repo file (edit on GitHub, or via Telegram /setprompt). Tokens
-# {clinic} and {categories} are substituted at runtime.
+# lives in that repo file (edit on GitHub, or via `python -m agent.cli set-prompt`).
+# Tokens {clinic} and {categories} are substituted at runtime.
 DEFAULT_PROMPT = """You are a professional health content writer for {clinic}, a
 homoeopathy clinic in Kochi, Kerala (Dr. Talal M and colleagues, BHMS). Write ONE
 blog post that is genuinely useful, simple and clear for patients — not clinicians.
@@ -77,9 +77,9 @@ category MUST be exactly one of: {categories}."""
 
 
 def _load_prompt() -> str:
-    """Load the live content prompt from content_prompt.txt (editable on GitHub /
-    via Telegram), falling back to DEFAULT_PROMPT. Appends the fixed JSON-shape
-    footer."""
+    """Load the live content prompt from content_prompt.txt (editable on GitHub,
+    or via `python -m agent.cli set-prompt`), falling back to DEFAULT_PROMPT.
+    Appends the fixed JSON-shape footer."""
     try:
         base = open(config.PROMPT_FILE, encoding="utf-8").read().strip()
     except OSError:
