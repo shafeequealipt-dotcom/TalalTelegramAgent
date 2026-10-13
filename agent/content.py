@@ -31,8 +31,9 @@ class Post(BaseModel):
     lede: str
     sections: List[Section]
     faqs: List[FAQ] = Field(default_factory=list)
-    # Plain-text blurb for the Google Business Profile post. Optional — gbp_blurb()
-    # falls back to lede/description when the model omits it.
+    # Plain-text blurb for the Google Business Profile post, filled in by
+    # write_gbp_summary() AFTER the article is final. gbp_blurb() falls back to
+    # lede/description when it is empty.
     gbp_summary: str = ""
     # filled in by generate_post() after the model call
     slug: str = ""          # filename stem: YYYY-MM-DD-topic-slug
@@ -46,8 +47,7 @@ _SCHEMA = """{
   "tags": ["2-5 short tags, e.g. Allergy, Sinusitis, Seasonal health"],
   "lede": "opening paragraph; use the focus keyword within the first sentence or two",
   "sections": [{"heading": "descriptive H2", "paragraphs": ["..."], "bullets": ["...optional..."]}],
-  "faqs": [{"question": "string", "answer": "string"}],
-  "gbp_summary": "4-6 informative plain-text sentences (600-1000 chars) written as a useful mini-article for the clinic's Google Business Profile, NOT a teaser. (1) FIRST sentence = an informative statement about the condition/season containing the focus keyword AND a local cue (Kochi/Kerala or the specific area) — only ~100 chars show before truncation; (2) then 2-3 practical, genuinely useful takeaways from the post; (3) close by inviting the reader to call Dr. Talal's Alsharaf Homoeo Medical Centre in Kochi. Same medical safety rules; no remedy names, no hashtags, no markdown, no emojis"
+  "faqs": [{"question": "string", "answer": "string"}]
 }"""
 
 # Fallback used only if content_prompt.txt is missing. The live, editable prompt
@@ -187,6 +187,41 @@ def generate_post(topic: str, feedback: str = "") -> Post:
                              "That was not valid JSON for the required shape. "
                              "Reply again with ONLY the JSON object, no fences."})
     raise RuntimeError(f"model did not return valid post JSON: {last_err}")
+
+
+def article_text(post: Post) -> str:
+    """The article as plain prose (no frontmatter), for write_gbp_summary()."""
+    parts = [post.lede]
+    for sec in post.sections:
+        parts += [sec.heading] + sec.paragraphs + sec.bullets
+    return "\n".join(p.strip() for p in parts if p and p.strip())
+
+
+def write_gbp_summary(title: str, article: str) -> str:
+    """Write the Google Business Profile text for a finished article, as its own
+    small model call. It is deliberately NOT part of the article's JSON: asking
+    for it in the same request made first drafts shorter (3 of 6 fell under the
+    gate's word floor, against 0 of 17 without it). The result still goes
+    through gbp_blurb()'s safety scan before anything is posted."""
+    resp = llm.chat(temperature=0.5, max_tokens=500, messages=[{
+        "role": "user",
+        "content": (
+            f"Write a Google Business Profile post for {config.CLINIC_NAME}, a "
+            "homoeopathy clinic in Kochi, Kerala, based on the article below.\n\n"
+            "- 4 to 6 plain-text sentences, 500 to 900 characters in total.\n"
+            "- First sentence: an informative statement about the condition, with a "
+            "local cue (Kochi, Kerala, or the area the article names).\n"
+            "- Then 2 or 3 practical takeaways taken from the article.\n"
+            f"- Last sentence: invite the reader to call {config.CLINIC_NAME}.\n"
+            "- No promises of results. Never suggest stopping a medicine or avoiding "
+            "surgery. No remedy names.\n"
+            "- No hashtags, emojis, markdown, links or quotation marks around the post.\n\n"
+            "Reply with the post text only.\n\n"
+            f"TITLE: {title}\n\nARTICLE:\n{article[:6000]}"
+        ),
+    }])
+    text = (resp.choices[0].message.content or "").strip()
+    return text.strip('"\u201c\u201d').strip()
 
 
 def gbp_blurb(post: Post) -> str:

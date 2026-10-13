@@ -35,6 +35,10 @@ def share_to_gbp(post, url: str):
         log.info("GBP auto-post is switched off — skipped")
         return
     try:
+        post.gbp_summary = content.write_gbp_summary(post.title, content.article_text(post))
+    except Exception:  # noqa
+        log.warning("couldn't write a GBP summary — using the title + opening paragraph")
+    try:
         if not gbp.wait_until_live(url):
             log.warning("blog page not live after 5 min — posting to GBP anyway: %s", url)
         name = gbp.create_local_post(content.gbp_blurb(post), url)

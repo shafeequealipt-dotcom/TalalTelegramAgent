@@ -94,6 +94,10 @@ def _gbp_from_published(filename: str):
     post = content.Post(title=fm["title"], description=fm["description"],
                         category=config.CATEGORIES[0], sections=[],
                         lede=paras[0] if paras else fm["description"])
+    try:
+        post.gbp_summary = content.write_gbp_summary(post.title, check_post.visible_text(body))
+    except Exception as e:  # noqa
+        print(f"(couldn't write a GBP summary: {e} — using the title + opening paragraph)")
     return content.gbp_blurb(post), f"{config.SITE_URL}/blog/{name[:-3]}"
 
 
