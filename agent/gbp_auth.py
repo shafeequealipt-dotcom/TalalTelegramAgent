@@ -4,7 +4,8 @@ Run it on your Mac (it needs a browser), with the OAuth client credentials
 exported in your shell (~/.zshrc):
     TALAL_GBP_ClientID, TALAL_GBP_ClientSecret
 
-  1) python3 -m agent.gbp_auth login
+  1) python3 -m agent.gbp_auth login [--save]
+       (--save writes the token straight into ~/.zshrc instead of printing it)
        Opens a Google consent URL; sign in with the Google account that
        owns/manages the clinic's Business Profile and approve. The redirect is
        captured automatically on http://localhost:8765 (if that port can't be
@@ -20,6 +21,7 @@ on a machine that doesn't have the Cloudflare/GitHub vars or REPO_DIR set.
 """
 import json
 import os
+import re
 import secrets
 import sys
 import time
@@ -46,9 +48,27 @@ def _env(*names):
     return None
 
 
-CLIENT_ID = _env("TALAL_GBP_ClientID", "GBP_CLIENT_ID")
-CLIENT_SECRET = _env("TALAL_GBP_ClientSecret", "GBP_CLIENT_SECRET")
-REFRESH_TOKEN = _env("TALAL_GBP_RefreshToken", "GBP_REFRESH_TOKEN")
+CLIENT_ID = _env("TALAL_GBP_ClientID", "Talal_GBP_ClientID", "GBP_CLIENT_ID")
+CLIENT_SECRET = _env("TALAL_GBP_ClientSecret", "Talal_GBP_ClientSecret", "GBP_CLIENT_SECRET")
+REFRESH_TOKEN = _env("TALAL_GBP_RefreshToken", "Talal_GBP_RefreshToken", "GBP_REFRESH_TOKEN")
+# Match whichever prefix the user's shell profile already uses.
+PREFIX = "Talal_GBP_" if os.environ.get("Talal_GBP_ClientID") else "TALAL_GBP_"
+ZSHRC = os.path.expanduser("~/.zshrc")
+
+
+def _save_export(name: str, value: str):
+    """Write `export NAME="value"` to ~/.zshrc, replacing any earlier line for the
+    same variable (either casing) so a re-run never leaves a stale duplicate."""
+    suffix = name.split("GBP_", 1)[1]
+    pat = re.compile(r"^\s*export\s+(TALAL|Talal)_GBP_" + re.escape(suffix) + r"=")
+    try:
+        lines = open(ZSHRC, encoding="utf-8").read().splitlines()
+    except OSError:
+        lines = []
+    lines = [l for l in lines if not pat.match(l)]
+    lines.append(f'export {name}="{value}"')
+    with open(ZSHRC, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
 
 
 def _require(*pairs):
@@ -95,7 +115,7 @@ def _capture_code(expected_state: str, timeout: int = 300):
     return holder.get("code")
 
 
-def login():
+def login(save: bool = False):
     _require(("TALAL_GBP_ClientID", CLIENT_ID),
              ("TALAL_GBP_ClientSecret", CLIENT_SECRET))
     state = secrets.token_urlsafe(16)
@@ -142,8 +162,13 @@ def login():
     if not rt:
         sys.exit(f"No refresh_token in the response (keys: {list(tok)}). Re-run; the "
                  "consent screen must appear (prompt=consent).")
+    if save:
+        _save_export(PREFIX + "RefreshToken", rt)
+        print(f"\nSaved {PREFIX}RefreshToken to ~/.zshrc ({rt[:6]}…, {len(rt)} chars). "
+              "Run `source ~/.zshrc` to load it.\n")
+        return
     print("\nAdd this line to ~/.zshrc (then `source ~/.zshrc`):\n")
-    print(f'export TALAL_GBP_RefreshToken="{rt}"\n')
+    print(f'export {PREFIX}RefreshToken="{rt}"\n')
 
 
 def _access_token() -> str:
@@ -182,12 +207,12 @@ def discover():
         sys.exit("No Business Profile accounts visible to this Google account.")
     for a in accts:
         aid = a["name"].split("/")[-1]
-        print(f"\nAccount: {a.get('accountName', '?')}  ->  TALAL_GBP_AccountID={aid}")
+        print(f"\nAccount: {a.get('accountName', '?')}  ->  {PREFIX}AccountID={aid}")
         locs = _get(f"{BIZ_INFO}/accounts/{aid}/locations"
                     "?readMask=name,title,storefrontAddress").get("locations", [])
         for l in locs:
             lid = l["name"].split("/")[-1]
-            print(f"  Location: {l.get('title', '?')}  ->  TALAL_GBP_LocationID={lid}")
+            print(f"  Location: {l.get('title', '?')}  ->  {PREFIX}LocationID={lid}")
     print("\nAdd the matching TALAL_GBP_AccountID and TALAL_GBP_LocationID exports "
           "to ~/.zshrc.\n")
 
@@ -195,7 +220,7 @@ def discover():
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "login":
-        login()
+        login(save="--save" in sys.argv)
     elif cmd == "discover":
         discover()
     else:

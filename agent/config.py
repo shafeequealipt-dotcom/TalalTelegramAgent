@@ -54,13 +54,13 @@ DEFAULT_MODEL = _env("DEFAULT_MODEL", default=PRESET_MODELS[0])
 # ---- Google Business Profile local posts (ALL optional — the feature stays
 #      dormant until all five are set; see agent/gbp_auth.py for the one-time
 #      OAuth bootstrap that produces the refresh token + ids) ----
-GBP_CLIENT_ID = _env("TALAL_GBP_ClientID", "GBP_CLIENT_ID")
-GBP_CLIENT_SECRET = _env("TALAL_GBP_ClientSecret", "GBP_CLIENT_SECRET")
-GBP_REFRESH_TOKEN = _env("TALAL_GBP_RefreshToken", "GBP_REFRESH_TOKEN")
-GBP_ACCOUNT_ID = _env("TALAL_GBP_AccountID", "GBP_ACCOUNT_ID")     # numeric, from accounts/{id}
-GBP_LOCATION_ID = _env("TALAL_GBP_LocationID", "GBP_LOCATION_ID")  # numeric, from locations/{id}
+GBP_CLIENT_ID = _env("TALAL_GBP_ClientID", "Talal_GBP_ClientID", "GBP_CLIENT_ID")
+GBP_CLIENT_SECRET = _env("TALAL_GBP_ClientSecret", "Talal_GBP_ClientSecret", "GBP_CLIENT_SECRET")
+GBP_REFRESH_TOKEN = _env("TALAL_GBP_RefreshToken", "Talal_GBP_RefreshToken", "GBP_REFRESH_TOKEN")
+GBP_ACCOUNT_ID = _env("TALAL_GBP_AccountID", "Talal_GBP_AccountID", "GBP_ACCOUNT_ID")     # numeric, from accounts/{id}
+GBP_LOCATION_ID = _env("TALAL_GBP_LocationID", "Talal_GBP_LocationID", "GBP_LOCATION_ID")  # numeric, from locations/{id}
 # Optional: public https image attached to every GBP post (dormant if unset).
-GBP_POST_IMAGE_URL = _env("TALAL_GBP_PostImageURL", "GBP_POST_IMAGE_URL")
+GBP_POST_IMAGE_URL = _env("TALAL_GBP_PostImageURL", "Talal_GBP_PostImageURL", "GBP_POST_IMAGE_URL")
 
 # ---- Website repo (publish target) — a DEDICATED clone, not the user's own
 #      working checkout, and not this repo ----

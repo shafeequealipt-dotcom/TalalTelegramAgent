@@ -12,11 +12,14 @@ the DNHCare original used.
     python -m agent.cli gbp                            # Google Business Profile status
     python -m agent.cli gbp on | off                   # toggle the GBP auto-post
     python -m agent.cli gbp cta call | learn           # switch the post's button
+    python -m agent.cli gbp preview <post-file.md>     # show the GBP text for a published post
+    python -m agent.cli gbp share <post-file.md>       # post it to GBP now (test / re-share)
 """
 import argparse
+import os
 import sys
 
-from . import config, gbp, llm, publisher, topics
+from . import check_post, config, content, gbp, llm, publisher, topics
 from .run_daily import generate_and_publish
 
 
@@ -79,14 +82,41 @@ def cmd_set_prompt(args):
     print("Content prompt updated and committed.")
 
 
+def _gbp_from_published(filename: str):
+    """Build the GBP text + link for a blog post that is already published. Used
+    for a first live test and to re-share after a day when the GBP step failed."""
+    name = os.path.basename(filename)
+    if not name.endswith(".md"):
+        name += ".md"
+    with open(os.path.join(config.BLOG_DIR, name), encoding="utf-8") as f:
+        fm, body = check_post._parse_frontmatter(f.read())
+    paras = [p.strip() for p in body.split("\n\n") if p.strip() and p.strip()[0] not in "#-*[>"]
+    post = content.Post(title=fm["title"], description=fm["description"],
+                        category=config.CATEGORIES[0], sections=[],
+                        lede=paras[0] if paras else fm["description"])
+    return content.gbp_blurb(post), f"{config.SITE_URL}/blog/{name[:-3]}"
+
+
 def cmd_gbp(args):
     a = [x.lower() for x in args.args]
+    if a[:1] in (["preview"], ["share"]) and len(a) == 2:
+        blurb, url = _gbp_from_published(args.args[1])
+        print(f"Link: {url}\nButton: {config.gbp_cta()}\nText ({len(blurb)} chars):\n{blurb}\n")
+        if a[0] == "share":
+            if not gbp.is_configured():
+                print("GBP is not configured — nothing posted.")
+                return
+            if not gbp.wait_until_live(url, timeout=30, interval=5):
+                print("That page is not live on the site — nothing posted.")
+                return
+            print("Posted:", gbp.create_local_post(blurb, url))
+        return
     if a[:1] in (["on"], ["off"]):
         config.set_gbp_enabled(a[0] == "on")
     elif a[:1] == ["cta"] and len(a) == 2 and a[1] in ("call", "learn", "learn_more"):
         config.set_gbp_cta(a[1])
     elif a:
-        print("Usage: gbp | gbp on | gbp off | gbp cta call | gbp cta learn")
+        print("Usage: gbp | gbp on | gbp off | gbp cta call|learn | gbp preview <file> | gbp share <file>")
         return
     if not gbp.is_configured():
         print("Google Business Profile is NOT configured — the agent publishes the "
