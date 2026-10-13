@@ -51,6 +51,17 @@ PRESET_MODELS = [
 ]
 DEFAULT_MODEL = _env("DEFAULT_MODEL", default=PRESET_MODELS[0])
 
+# ---- Google Business Profile local posts (ALL optional — the feature stays
+#      dormant until all five are set; see agent/gbp_auth.py for the one-time
+#      OAuth bootstrap that produces the refresh token + ids) ----
+GBP_CLIENT_ID = _env("TALAL_GBP_ClientID", "GBP_CLIENT_ID")
+GBP_CLIENT_SECRET = _env("TALAL_GBP_ClientSecret", "GBP_CLIENT_SECRET")
+GBP_REFRESH_TOKEN = _env("TALAL_GBP_RefreshToken", "GBP_REFRESH_TOKEN")
+GBP_ACCOUNT_ID = _env("TALAL_GBP_AccountID", "GBP_ACCOUNT_ID")     # numeric, from accounts/{id}
+GBP_LOCATION_ID = _env("TALAL_GBP_LocationID", "GBP_LOCATION_ID")  # numeric, from locations/{id}
+# Optional: public https image attached to every GBP post (dormant if unset).
+GBP_POST_IMAGE_URL = _env("TALAL_GBP_PostImageURL", "GBP_POST_IMAGE_URL")
+
 # ---- Website repo (publish target) — a DEDICATED clone, not the user's own
 #      working checkout, and not this repo ----
 GITHUB_TOKEN = _env("TALAL_GitHub_Token", "TALAL_GITHUB_TOKEN", "GITHUB_TOKEN", required=True)
@@ -119,3 +130,30 @@ def set_model(model_id: str):
     state["model"] = model_id.strip()
     _write_state(state)
     return state["model"]
+
+
+# ---- Google Business Profile toggle + CTA (`agent.cli gbp ...`), persisted ----
+def gbp_enabled() -> bool:
+    return bool(_read_state().get("gbp_enabled", True))  # default ON once configured
+
+
+def set_gbp_enabled(on: bool) -> bool:
+    state = _read_state()
+    state["gbp_enabled"] = bool(on)
+    _write_state(state)
+    return state["gbp_enabled"]
+
+
+def gbp_cta() -> str:
+    """"CALL" (default — Call-now button using the clinic's listed number) or
+    "LEARN_MORE" (clickable link to the blog post)."""
+    v = _read_state().get("gbp_cta", "CALL")
+    return v if v in ("CALL", "LEARN_MORE") else "CALL"
+
+
+def set_gbp_cta(v: str) -> str:
+    v = "LEARN_MORE" if v.strip().upper() in ("LEARN", "LEARN_MORE", "LEARNMORE") else "CALL"
+    state = _read_state()
+    state["gbp_cta"] = v
+    _write_state(state)
+    return v

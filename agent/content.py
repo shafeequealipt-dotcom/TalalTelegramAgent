@@ -31,6 +31,9 @@ class Post(BaseModel):
     lede: str
     sections: List[Section]
     faqs: List[FAQ] = Field(default_factory=list)
+    # Plain-text blurb for the Google Business Profile post. Optional — gbp_blurb()
+    # falls back to lede/description when the model omits it.
+    gbp_summary: str = ""
     # filled in by generate_post() after the model call
     slug: str = ""          # filename stem: YYYY-MM-DD-topic-slug
     topic_slug: str = ""    # just the topic part, date-independent — for dedup
@@ -43,7 +46,8 @@ _SCHEMA = """{
   "tags": ["2-5 short tags, e.g. Allergy, Sinusitis, Seasonal health"],
   "lede": "opening paragraph; use the focus keyword within the first sentence or two",
   "sections": [{"heading": "descriptive H2", "paragraphs": ["..."], "bullets": ["...optional..."]}],
-  "faqs": [{"question": "string", "answer": "string"}]
+  "faqs": [{"question": "string", "answer": "string"}],
+  "gbp_summary": "4-6 informative plain-text sentences (600-1000 chars) written as a useful mini-article for the clinic's Google Business Profile, NOT a teaser. (1) FIRST sentence = an informative statement about the condition/season containing the focus keyword AND a local cue (Kochi/Kerala or the specific area) — only ~100 chars show before truncation; (2) then 2-3 practical, genuinely useful takeaways from the post; (3) close by inviting the reader to call Dr. Talal's Alsharaf Homoeo Medical Centre in Kochi. Same medical safety rules; no remedy names, no hashtags, no markdown, no emojis"
 }"""
 
 # Fallback used only if content_prompt.txt is missing. The live, editable prompt
@@ -183,6 +187,27 @@ def generate_post(topic: str, feedback: str = "") -> Post:
                              "That was not valid JSON for the required shape. "
                              "Reply again with ONLY the JSON object, no fences."})
     raise RuntimeError(f"model did not return valid post JSON: {last_err}")
+
+
+def gbp_blurb(post: Post) -> str:
+    """Plain-text blurb for the Google Business Profile post, with a fallback when
+    the model omitted gbp_summary. Runs the same safety scan as the blog gate
+    (overclaims, stop-medication/skip-surgery advice, remedy names); a hit falls
+    back to the next candidate, ending at a generic line that cannot trip it."""
+    from . import check_post
+    invite = f"Call {config.CLINIC_NAME} in Kochi to discuss your case."
+    candidates = [post.gbp_summary,
+                  f"{post.title}. {post.lede} {invite}",
+                  f"{post.title} — {post.description} {invite}"]
+    banned = check_post.BANNED + check_post.BANNED_ADVICE + check_post.BANNED_REMEDY_NAMES
+    for text in candidates:
+        text = (text or "").strip()
+        if not text:
+            continue
+        low = " " + re.sub(r"\s+", " ", text.lower()) + " "
+        if not any(re.search(r"\b" + re.escape(w) + r"\b", low) for w in banned):
+            return text
+    return f"New on the {config.CLINIC_NAME} health notes: {post.title}."
 
 
 def _yaml_str(s: str) -> str:

@@ -15,7 +15,7 @@ import argparse
 import logging
 import sys
 
-from . import config, content, publisher, topics
+from . import config, content, gbp, publisher, topics
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -23,6 +23,24 @@ log = logging.getLogger("talal-agent")
 
 MAX_TOPIC_ATTEMPTS = 3  # how many different auto-picked topics to try in one run
                         # before giving up for the day on repeated duplicate slugs
+
+
+def share_to_gbp(post, url: str):
+    """Share the just-published post to the clinic's Google Business Profile.
+    Isolated: the blog is already live, so a GBP failure is logged and swallowed —
+    it never fails the run (a re-run would write a second, different blog post)."""
+    if not gbp.is_configured():
+        return  # dormant — credentials not set
+    if not gbp.is_enabled():
+        log.info("GBP auto-post is switched off — skipped")
+        return
+    try:
+        if not gbp.wait_until_live(url):
+            log.warning("blog page not live after 5 min — posting to GBP anyway: %s", url)
+        name = gbp.create_local_post(content.gbp_blurb(post), url)
+        log.info("GBP post created: %s", name)
+    except Exception:  # noqa
+        log.exception("GBP post failed (the blog post itself is live)")
 
 
 def generate_and_publish(topic: str | None = None, feedback: str = "") -> int:
@@ -85,6 +103,7 @@ def generate_and_publish(topic: str | None = None, feedback: str = "") -> int:
         log.exception("publish failed")
         return 1
     log.info("published: %s", url)
+    share_to_gbp(post, url)
     return 0
 
 

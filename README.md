@@ -42,9 +42,10 @@ an existing post) simply exits non-zero and leaves the topic queued — logged
 via `journalctl`, picked up again on the next scheduled run or a manual
 `python -m agent.cli generate`.
 
-No Google Business Profile integration in this version — that's the next
-phase (see the DNH Care original this agent is patterned after if you want a
-reference for the GBP local-post flow).
+After a successful publish, `agent/gbp.py` optionally shares the post to the
+clinic's Google Business Profile (it waits for the page to be live first, so the
+post never links to a 404). This is dormant until the five `TALAL_GBP_*` values
+are set — see [SETUP.md](SETUP.md) §6 — and a GBP failure never fails the run.
 
 ## Location-based content
 
@@ -83,6 +84,8 @@ python -m agent.cli set-prompt path/to/file.txt       # update + commit the prom
 | `agent/topics.py` | Topic queue (`topics.md`) + trending-topic auto-pick |
 | `agent/check_post.py` | Safety/quality gate — run before every publish |
 | `agent/publisher.py` | Git operations against the site repo (and, for `set-prompt`, this repo) |
+| `agent/gbp.py` | Google Business Profile local post (optional, dormant until configured) |
+| `agent/gbp_auth.py` | One-time OAuth bootstrap — mints the GBP refresh token |
 | `agent/deploy/talal-agent.service` + `.timer` | systemd units for the daily run |
 | `content_prompt.txt` | The live, editable content-generation prompt |
 | `topics.md` | The topic queue + done log |

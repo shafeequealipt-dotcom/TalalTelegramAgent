@@ -78,3 +78,66 @@ This agent pushes to `TalalHomeo`'s `main` branch; that repo's own
 push to actually deploy to the live site — see that repo's `DEPLOY.md` if
 they aren't set yet. Until they are, posts land on GitHub but won't reach
 https://drtalalhomeo.in automatically.
+
+## 6. Google Business Profile auto-post (optional)
+
+After each blog post goes live, the agent can share it to the clinic's Google
+Business Profile. The feature is **dormant until all five `TALAL_GBP_*` values
+are set** — until then the agent publishes the blog only, exactly as before.
+
+Google has no "permanent API key" for Business Profile, and no service-account
+support. The long-lived credential is an **OAuth refresh token**, minted once.
+
+**a) Google Cloud Console** (https://console.cloud.google.com)
+
+1. Create (or pick) a project, e.g. `talal-homeo-gbp`. Note its **project number**.
+2. **Request GBP API access** — https://developers.google.com/my-business/content/prereqs
+   → "Request access to the APIs". Quota is **0 until Google approves** this, so
+   nothing works before then. Approval is manual and can take days.
+3. APIs & Services → Library → enable all three:
+   - **Google My Business API** (the v4 API that serves local posts)
+   - **My Business Account Management API**
+   - **My Business Business Information API**
+4. OAuth consent screen → User type **External** → fill app name + support email
+   → add the scope `https://www.googleapis.com/auth/business.manage`.
+5. **Publish the app: set publishing status to "In production".** This is what
+   makes the token permanent — while the app is in "Testing", Google expires
+   refresh tokens after **7 days**.
+6. Credentials → Create credentials → **OAuth client ID** → Application type
+   **Desktop app** → copy the client ID and client secret.
+
+**b) Mint the refresh token (on your Mac — it needs a browser)**
+
+Add to `~/.zshrc`, then `source ~/.zshrc`:
+
+```bash
+export TALAL_GBP_ClientID="....apps.googleusercontent.com"
+export TALAL_GBP_ClientSecret="GOCSPX-..."
+```
+
+```bash
+python3 -m agent.gbp_auth login      # approve as the account that owns/manages the profile
+```
+
+Add the printed `TALAL_GBP_RefreshToken` line to `~/.zshrc`, `source` it, then:
+
+```bash
+python3 -m agent.gbp_auth discover   # prints TALAL_GBP_AccountID / TALAL_GBP_LocationID
+```
+
+Add those two as well.
+
+**c) Put the five values on the server** in `agent/.env` (same file as the
+Cloudflare/GitHub values), then check:
+
+```bash
+python -m agent.cli gbp              # should report: GBP auto-post: ON
+```
+
+**Controls:** `gbp on` / `gbp off` toggles it; `gbp cta call` (default — a "Call
+now" button, blog URL as text) or `gbp cta learn` (a "Learn more" link to the post).
+
+**If it stops working:** `invalid_grant` in the logs means the refresh token was
+revoked or expired — re-run `gbp_auth login`. A refresh token also dies if it
+goes unused for 6 months, or if access is removed at
+https://myaccount.google.com/permissions.

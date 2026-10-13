@@ -9,11 +9,14 @@ the DNHCare original used.
     python -m agent.cli set-model <id-or-number>       # switch the writing model
     python -m agent.cli prompt                         # show the content prompt
     python -m agent.cli set-prompt path/to/file.txt     # update + commit the prompt
+    python -m agent.cli gbp                            # Google Business Profile status
+    python -m agent.cli gbp on | off                   # toggle the GBP auto-post
+    python -m agent.cli gbp cta call | learn           # switch the post's button
 """
 import argparse
 import sys
 
-from . import config, llm, publisher, topics
+from . import config, gbp, llm, publisher, topics
 from .run_daily import generate_and_publish
 
 
@@ -76,6 +79,24 @@ def cmd_set_prompt(args):
     print("Content prompt updated and committed.")
 
 
+def cmd_gbp(args):
+    a = [x.lower() for x in args.args]
+    if a[:1] in (["on"], ["off"]):
+        config.set_gbp_enabled(a[0] == "on")
+    elif a[:1] == ["cta"] and len(a) == 2 and a[1] in ("call", "learn", "learn_more"):
+        config.set_gbp_cta(a[1])
+    elif a:
+        print("Usage: gbp | gbp on | gbp off | gbp cta call | gbp cta learn")
+        return
+    if not gbp.is_configured():
+        print("Google Business Profile is NOT configured — the agent publishes the "
+              "blog only. See SETUP.md (Google Business Profile).")
+        return
+    print(f"GBP auto-post: {'ON' if config.gbp_enabled() else 'OFF'}")
+    print("CTA button: " + ("Call now (blog URL as plain text in the post)"
+                            if config.gbp_cta() == "CALL" else "Learn more (links to the blog post)"))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -106,6 +127,10 @@ def main():
     p = sub.add_parser("set-prompt", help="Update the prompt from a local file and commit it.")
     p.add_argument("file")
     p.set_defaults(func=cmd_set_prompt)
+
+    p = sub.add_parser("gbp", help="Google Business Profile: status / on / off / cta call|learn.")
+    p.add_argument("args", nargs="*")
+    p.set_defaults(func=cmd_gbp)
 
     args = parser.parse_args()
     args.func(args)
